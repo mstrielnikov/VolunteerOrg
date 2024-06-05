@@ -10,24 +10,28 @@ import "hardhat/console.sol";
  */
 contract Volunteer {
     address private owner;
+    address private charityDestination;
+    address private charityRepresentative;
 
+    uint private deadline;
     uint256 minLimit = 0;
     uint256 maxLimit = type(uint256).max;
 
     mapping (address => uint256) funding;
 
-    address[] donators;
+    address[] private donators;
 
     uint256 private balance;
 
     // event for EVM logging
     event OwnerSet(address indexed oldOwner, address indexed newOwner);
     event FundingRecieve(address indexed funderAddress, uint256 fundingAmount);
+    event FundingWithdraw(address indexed funderAddress, uint256 fundingAmount);
     event MinLimitSet(uint256 limit);
 
 
     // modifier to check if caller is owner
-    modifier isOwner() {
+    modifier onlyOwner() {
         // If the first argument of 'require' evaluates to 'false', execution terminates and all
         // changes to the state and to Ether balances are reverted.
         // This used to consume all gas in old EVM versions, but not anymore.
@@ -45,11 +49,15 @@ contract Volunteer {
         emit OwnerSet(address(0), owner);
     }
 
+   function setDeadline(uint _deadline) external onlyOwner {
+        deadline = _deadline;
+    }
+
     /**
      * @dev donate
      */
     function donate() external payable {
-        require(msg.value > minLimit && msg.value < maxLimit, "Unable to donate funds. Funding amount should fit into range betweeb minAllowed and maxAllowed fund value");
+        require(msg.value > minLimit && msg.value < maxLimit, "Unable to donate funds. Funding amount should fit into range betweeb minLimit and maxLimit value");
     
         if (funding[msg.sender] == 0) {
             donators.push(msg.sender);
@@ -95,13 +103,29 @@ contract Volunteer {
         emit MinLimitSet(limit);
     }
 
-    // function changeOwner(address newOwner) public isOwner {
-    //     emit OwnerSet(owner, newOwner);
-    //     owner = newOwner;
-    // }
+    function setCharityRepresentative(address _charityRepresentative) external onlyOwner {
+        charityRepresentative = _charityRepresentative;
+    }
 
+    modifier onlyCharityRepresentative() {
+        require(msg.sender == charityRepresentative, "Only owner charity representative to perform this action");
+        _;
+    }
+
+    function setCharityDestination(address _charityDestination) external onlyOwner {
+        charityDestination = _charityDestination;
+    }
+
+    function withdrawFunds() external onlyCharityRepresentative {
+        require(charityDestination != address(0), "Charity address is not set. Unable to send funds");
+        require(block.timestamp >= deadline, "Unable to withdraw funds before the deadline");
+        
+        (bool success, ) = charityDestination.call{value: balance}("");
+        require(success, "Transfer failed");
+        emit FundingWithdraw(charityDestination, balance);
+    }
+
+    fallback() external payable{}
     
-    // fallback() external payable{}
-    
-    // receive() external payable {}
+    receive() external payable {}
 } 
