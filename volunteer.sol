@@ -5,8 +5,7 @@ pragma solidity >=0.7.0 <0.8.0;
 import "hardhat/console.sol";
 
 /**
- * @title Owner
- * @dev Set & change owner
+ * @title Volunteer
  */
 contract Volunteer {
     address private owner;
@@ -49,6 +48,9 @@ contract Volunteer {
         emit OwnerSet(address(0), owner);
     }
 
+    /**
+     * @dev setDeadline
+     */
    function setDeadline(uint _deadline) external onlyOwner {
         deadline = _deadline;
     }
@@ -83,8 +85,12 @@ contract Volunteer {
         return donators;
     }
 
-    function getDonationsPerAddr(address donator) public view returns (uint256) {
-        return funding[donator];
+    /**
+     * @dev getDonationsPerAddr
+     * @return amount of funds per address
+     */
+    function getDonationsPerAddr(address _address) public view returns (uint256) {
+        return funding[_address];
     }
 
     /**
@@ -98,11 +104,14 @@ contract Volunteer {
     /**
      * @dev set min amount of single donation
      */
-    function setDonatMin(uint256 limit) public {
-        minLimit = limit;
-        emit MinLimitSet(limit);
+    function setDonatMin(uint256 _limit) public {
+        minLimit = _limit;
+        emit MinLimitSet(minLimit);
     }
 
+    /**
+     * @dev set charity representative
+     */
     function setCharityRepresentative(address _charityRepresentative) external onlyOwner {
         charityRepresentative = _charityRepresentative;
     }
@@ -112,11 +121,17 @@ contract Volunteer {
         _;
     }
 
+    /**
+     * @dev set charity destination
+     */
     function setCharityDestination(address _charityDestination) external onlyOwner {
         charityDestination = _charityDestination;
     }
 
-    function withdrawFunds() external onlyCharityRepresentative {
+    /**
+     * @dev withdraw funds
+     */
+    function withdrawFunds() external payable  onlyCharityRepresentative {
         require(charityDestination != address(0), "Charity address is not set. Unable to send funds");
         require(block.timestamp >= deadline, "Unable to withdraw funds before the deadline");
         
