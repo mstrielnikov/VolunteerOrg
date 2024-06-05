@@ -14,22 +14,17 @@ contract Volunteer {
     uint256 minLimit = 0;
     uint256 maxLimit = type(uint256).max;
 
-    mapping (address => uint256) journal;
+    mapping (address => uint256) funding;
 
-    struct fund{
-        address donator;
-        uint256[] donats;
-    }
-
-    fund[] fundings;
-    uint256 private counter;
+    address[] donators;
 
     uint256 private balance;
 
     // event for EVM logging
     event OwnerSet(address indexed oldOwner, address indexed newOwner);
-
     event FundingRecieve(address indexed funderAddress, uint256 fundingAmount);
+    event MinLimitSet(uint256 limit);
+
 
     // modifier to check if caller is owner
     modifier isOwner() {
@@ -55,28 +50,15 @@ contract Volunteer {
      */
     function donate() external payable {
         require(msg.value > minLimit && msg.value < maxLimit, "Unable to donate funds. Funding amount should fit into range betweeb minAllowed and maxAllowed fund value");
-        require(counter < maxLimit, "Unable to recieve funds. Max number of donators reached");
-
-        if (!contains(msg.sender)) {
-            counter++;
-            journal[msg.sender] = counter;
-            fundings[counter].donator = msg.sender;
+    
+        if (funding[msg.sender] == 0) {
+            donators.push(msg.sender);
         }
 
-        uint256 offset = getOffset(msg.sender);
-        fundings[offset].donats.push(msg.value);
-
+        funding[msg.sender] += msg.value;
         balance += msg.value;
-
+        
         emit FundingRecieve(msg.sender, msg.value);
-    }
-
-    function contains(address donator) public view returns(bool) {
-        return journal[donator] != 0;
-    }
-
-    function getOffset(address donator) public view returns(uint256) {
-        return journal[donator];
     }
 
     /**
@@ -90,52 +72,36 @@ contract Volunteer {
      * @dev getDonators
      */
     function getDonators() public view returns (address[] memory) {
-        address[] memory donatorsList = new address[](counter);
-        for(uint256 i = 0; i < counter; i++ ){
-            donatorsList[i] = fundings[i].donator;
-        }
-        return donatorsList;
+        return donators;
+    }
+
+    function getDonationsPerAddr(address donator) public view returns (uint256) {
+        return funding[donator];
     }
 
     /**
-     * @dev getFundings
-     */
-    function getFundings() public view returns (address[] memory, uint256 [] memory) {
-        return fundings;
-    }
-
-    function getDonationsPerAddr(address donator) public view returns (uint256[] memory) {
-        uint256 offset = getOffset(donator);
-        return fundings[offset].donats;
-    }
-
-    /**
-     * @dev Return owner address
+     * @dev Return owner address 
      * @return address of owner
      */
     function getOwner() external view returns (address) {
         return owner;
     }
 
-    // function changeOwner(address newOwner) public isOwner {
-    //     emit OwnerSet(owner, newOwner);
-    //     owner = newOwner;
-    // }
-
-
-    // fallback() external payable{}
-
-    // receive() external payable {}
-}
-
+    /**
+     * @dev set min amount of single donation
+     */
+    function setDonatMin(uint256 limit) public {
+        minLimit = limit;
+        emit MinLimitSet(limit);
+    }
 
     // function changeOwner(address newOwner) public isOwner {
     //     emit OwnerSet(owner, newOwner);
     //     owner = newOwner;
     // }
 
-
+    
     // fallback() external payable{}
-
+    
     // receive() external payable {}
-}
+} 
