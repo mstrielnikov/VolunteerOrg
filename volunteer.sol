@@ -23,7 +23,7 @@ contract Volunteer {
     uint256 private balance;
 
     // event for EVM logging
-    event OwnerSet(address indexed oldOwner, address indexed newOwner);
+    event OwnerSet(address indexed newOwner);
     event FundingRecieve(address indexed funderAddress, uint256 fundingAmount);
     event FundingWithdraw(address indexed funderAddress, uint256 fundingAmount);
     event MinLimitSet(uint256 limit);
@@ -40,12 +40,17 @@ contract Volunteer {
         _;
     }
 
+    modifier onlyCharityRepresentative() {
+        require(msg.sender == charityRepresentative, "Only owner charity representative to perform this action");
+        _;
+    }
+
     /**
      * @dev Set contract deployer as owner
      */
     constructor() {
         owner = msg.sender; // 'msg.sender' is sender of current call, contract deployer for a constructor
-        emit OwnerSet(address(0), owner);
+        emit OwnerSet(owner);
     }
 
     /**
@@ -59,7 +64,7 @@ contract Volunteer {
      * @dev donate
      */
     function donate() external payable {
-        require(msg.value > minLimit && msg.value < maxLimit, "Unable to donate funds. Funding amount should fit into range betweeb minLimit and maxLimit value");
+        require(msg.value >= minLimit && msg.value < maxLimit, "Unable to donate funds. Funding amount should fit into range betweeb minLimit and maxLimit value");
     
         if (funding[msg.sender] == 0) {
             donators.push(msg.sender);
@@ -114,11 +119,6 @@ contract Volunteer {
      */
     function setCharityRepresentative(address _charityRepresentative) external onlyOwner {
         charityRepresentative = _charityRepresentative;
-    }
-
-    modifier onlyCharityRepresentative() {
-        require(msg.sender == charityRepresentative, "Only owner charity representative to perform this action");
-        _;
     }
 
     /**
